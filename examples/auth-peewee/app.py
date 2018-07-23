@@ -59,6 +59,7 @@ class BaseModel(peewee.Model):
 
 class User(BaseModel, UserMixin):
     username = peewee.CharField(max_length=80)
+    password = peewee.CharField(max_length=120)
     email = peewee.CharField(max_length=120)
     active = peewee.BooleanField(default=True)
     confirmed_at = peewee.DateTimeField(null=True)
