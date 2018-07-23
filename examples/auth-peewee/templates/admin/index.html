@@ -20,6 +20,10 @@
             <p>
                 <a class="btn btn-primary" href="{{ url_for('security.login') }}">login</a> <a class="btn btn-default" href="{{ url_for('security.register') }}">register</a>
             </p>
+            {% else %}
+              <a class="btn btn-primary" href="{{ url_for('security.logout') }}">
+                <!-- <i class="glyphicon glyphicon-chevron-left"></i> -->
+                 logout</a>
             {% endif %}
             <p>
                 <a class="btn btn-primary" href="/"><i class="glyphicon glyphicon-chevron-left"></i> Back</a>

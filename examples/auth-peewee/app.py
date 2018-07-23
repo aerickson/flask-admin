@@ -295,7 +295,7 @@ if __name__ == '__main__':
     logging.basicConfig()
     logging.getLogger().setLevel(logging.DEBUG)
 
-    admin = admin.Admin(app, name='Example: Peewee')
+    admin = admin.Admin(app, name='Example: Peewee', url='/admin-wizard')
 
 #    admin.add_view(UserAdmin(User))
 #    admin.add_view(PostAdmin(Post))
