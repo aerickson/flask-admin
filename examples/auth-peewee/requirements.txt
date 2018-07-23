@@ -1,4 +1,5 @@
 Flask
 Flask-Admin
-Flask-SQLAlchemy
+#Flask-SQLAlchemy
+Flask-Peewee
 Flask-Security>=1.7.5

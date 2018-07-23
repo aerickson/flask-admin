@@ -257,10 +257,12 @@ if __name__ == '__main__':
 #    admin.add_view(PostAdmin(Post))
 
     admin.add_view(UserAdmin(User))
+    admin.add_view(UserAdmin(Role))
 
     try:
         User.create_table()
         UserRoles.create_table()
+        Role.create_table()
         #UserInfo.create_table()
         #Post.create_table()
     except:
