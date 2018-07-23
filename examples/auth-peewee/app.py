@@ -57,9 +57,11 @@ class BaseModel(peewee.Model):
         database = db
 
 
-class User(BaseModel):
+class User(BaseModel, UserMixin):
     username = peewee.CharField(max_length=80)
     email = peewee.CharField(max_length=120)
+    active = peewee.BooleanField(default=True)
+    confirmed_at = peewee.DateTimeField(null=True)
 
     def __unicode__(self):
         return self.username
@@ -97,6 +99,29 @@ class Post(BaseModel):
 class UserAdmin(ModelView):
 #    inline_models = (UserInfo,)
     pass
+
+class GenericAdmin(ModelView):
+
+   def is_accessible(self):
+       if not current_user.is_active or not current_user.is_authenticated:
+           return False
+
+       if current_user.has_role('superuser'):
+           return True
+
+       return False
+
+   def _handle_view(self, name, **kwargs):
+       """
+       Override builtin _handle_view in order to redirect users when a view is not accessible.
+       """
+       if not self.is_accessible():
+           if current_user.is_authenticated:
+               # permission denied
+               abort(403)
+           else:
+               # login
+               return redirect(url_for('security.login', next=request.url))
 
 
 class PostAdmin(ModelView):
@@ -190,54 +215,72 @@ def security_context_processor():
     )
 
 
+# def build_sample_db():
+#     """
+#     Populate a small db with some example entries.
+#     """
+#
+#     import string
+#     import random
+#
+#     db.drop_all()
+#     db.create_all()
+#
+#     with app.app_context():
+#         user_role = Role(name='user')
+#         super_user_role = Role(name='superuser')
+#         db.session.add(user_role)
+#         db.session.add(super_user_role)
+#         db.session.commit()
+#
+#         test_user = user_datastore.create_user(
+#             first_name='Admin',
+#             email='admin',
+#             password=encrypt_password('admin'),
+#             roles=[user_role, super_user_role]
+#         )
+#
+#         first_names = [
+#             'Harry', 'Amelia', 'Oliver', 'Jack', 'Isabella', 'Charlie', 'Sophie', 'Mia',
+#             'Jacob', 'Thomas', 'Emily', 'Lily', 'Ava', 'Isla', 'Alfie', 'Olivia', 'Jessica',
+#             'Riley', 'William', 'James', 'Geoffrey', 'Lisa', 'Benjamin', 'Stacey', 'Lucy'
+#         ]
+#         last_names = [
+#             'Brown', 'Smith', 'Patel', 'Jones', 'Williams', 'Johnson', 'Taylor', 'Thomas',
+#             'Roberts', 'Khan', 'Lewis', 'Jackson', 'Clarke', 'James', 'Phillips', 'Wilson',
+#             'Ali', 'Mason', 'Mitchell', 'Rose', 'Davis', 'Davies', 'Rodriguez', 'Cox', 'Alexander'
+#         ]
+#
+#         for i in range(len(first_names)):
+#             tmp_email = first_names[i].lower() + "." + last_names[i].lower() + "@example.com"
+#             tmp_pass = ''.join(random.choice(string.ascii_lowercase + string.digits) for i in range(10))
+#             user_datastore.create_user(
+#                 first_name=first_names[i],
+#                 last_name=last_names[i],
+#                 email=tmp_email,
+#                 password=encrypt_password(tmp_pass),
+#                 roles=[user_role, ]
+#             )
+#         db.session.commit()
+#     return
+
 def build_sample_db():
-    """
-    Populate a small db with some example entries.
-    """
+        with app.app_context():
+            user_role = Role(name='user')
+            user_role.save()
+            super_user_role = Role(name='superuser')
+            super_user_role.save()
+            # db.session.add(user_role)
+            # db.session.add(super_user_role)
+            # db.session.commit()
 
-    import string
-    import random
-
-    db.drop_all()
-    db.create_all()
-
-    with app.app_context():
-        user_role = Role(name='user')
-        super_user_role = Role(name='superuser')
-        db.session.add(user_role)
-        db.session.add(super_user_role)
-        db.session.commit()
-
-        test_user = user_datastore.create_user(
-            first_name='Admin',
-            email='admin',
-            password=encrypt_password('admin'),
-            roles=[user_role, super_user_role]
-        )
-
-        first_names = [
-            'Harry', 'Amelia', 'Oliver', 'Jack', 'Isabella', 'Charlie', 'Sophie', 'Mia',
-            'Jacob', 'Thomas', 'Emily', 'Lily', 'Ava', 'Isla', 'Alfie', 'Olivia', 'Jessica',
-            'Riley', 'William', 'James', 'Geoffrey', 'Lisa', 'Benjamin', 'Stacey', 'Lucy'
-        ]
-        last_names = [
-            'Brown', 'Smith', 'Patel', 'Jones', 'Williams', 'Johnson', 'Taylor', 'Thomas',
-            'Roberts', 'Khan', 'Lewis', 'Jackson', 'Clarke', 'James', 'Phillips', 'Wilson',
-            'Ali', 'Mason', 'Mitchell', 'Rose', 'Davis', 'Davies', 'Rodriguez', 'Cox', 'Alexander'
-        ]
-
-        for i in range(len(first_names)):
-            tmp_email = first_names[i].lower() + "." + last_names[i].lower() + "@example.com"
-            tmp_pass = ''.join(random.choice(string.ascii_lowercase + string.digits) for i in range(10))
-            user_datastore.create_user(
-                first_name=first_names[i],
-                last_name=last_names[i],
-                email=tmp_email,
-                password=encrypt_password(tmp_pass),
-                roles=[user_role, ]
+            test_user = user_datastore.create_user(
+                username='Admin',
+                first_name='Admin',
+                email='admin',
+                password=encrypt_password('admin'),
+                roles=[user_role, super_user_role]
             )
-        db.session.commit()
-    return
 
 if __name__ == '__main__':
 
@@ -256,8 +299,8 @@ if __name__ == '__main__':
 #    admin.add_view(UserAdmin(User))
 #    admin.add_view(PostAdmin(Post))
 
-    admin.add_view(UserAdmin(User))
-    admin.add_view(UserAdmin(Role))
+    admin.add_view(GenericAdmin(User))
+    admin.add_view(GenericAdmin(Role))
 
     try:
         User.create_table()
@@ -266,6 +309,13 @@ if __name__ == '__main__':
         #UserInfo.create_table()
         #Post.create_table()
     except:
+        pass
+
+    # build_sample_db()
+    try:
+        build_sample_db()
+    except peewee.IntegrityError:
+        db.rollback()
         pass
 
     # Start app
